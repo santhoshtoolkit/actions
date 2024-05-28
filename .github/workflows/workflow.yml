@@ -1,0 +1,23 @@
+name: Example Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+
+    env:
+      MY_VAR1: Hello
+      MY_VAR2: World
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Print environment variables
+      run: |
+        echo "MY_VAR1 is $MY_VAR1"
+        echo "MY_VAR2 is $MY_VAR2"
