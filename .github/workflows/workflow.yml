@@ -1,14 +1,22 @@
-name: Example Workflow
+name: Full Example Workflow
 
+# Trigger the workflow on push and pull request events
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
+# Define a matrix job to run on multiple versions of Node.js
 jobs:
-  example-job:
+  build:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x]
+    
     env:
       MY_VAR1: Hello
       MY_VAR2: World
@@ -17,7 +25,48 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Cache Node.js modules
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests
+      run: npm test
+
     - name: Print environment variables
       run: |
         echo "MY_VAR1 is $MY_VAR1"
         echo "MY_VAR2 is $MY_VAR2"
+
+    - name: Use secrets
+      run: echo "GITHUB_TOKEN is ${{ secrets.GITHUB_TOKEN }}"
+
+    - name: Run a custom script
+      run: ./scripts/custom-script.sh
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Deploy to server
+      run: ./scripts/deploy.sh
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SERVER: ${{ secrets.SERVER }}
+        USERNAME: ${{ secrets.USERNAME }}
